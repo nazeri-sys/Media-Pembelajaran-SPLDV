@@ -1,0 +1,1427 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misi Agen SPLDV - Game Matematika Kelas</title>
+    <!-- Tailwind CSS untuk tata letak responsif & modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js untuk efek suara interaktif tanpa file eksternal -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Font Google: Fredoka & Plus Jakarta Sans agar ramah pelajar & terbaca jelas di proyektor -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Kustomisasi gaya untuk tampilan layar proyektor / TV kelas yang cerah & kontras tinggi */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a 60%, #020617);
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        h1, h2, h3, .font-game {
+            font-family: 'Fredoka', sans-serif;
+        }
+        /* Efek tombol 3D ala game edukasi */
+        .btn-3d {
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+        }
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+        }
+        /* Animasi melayang lembut */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+        /* Animasi getar saat jawaban salah */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* Animasi membesar saat skor bertambah */
+        @keyframes popScore {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.35); color: #fde047; }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: popScore 0.45s ease-out;
+        }
+        /* Canvas Koordinat Kartesius */
+        #cartesianCanvas {
+            background: #0f172a;
+            border-radius: 1rem;
+            box-shadow: inset 0 0 25px rgba(56, 189, 248, 0.15);
+            cursor: crosshair;
+            touch-action: none;
+        }
+        /* Canvas Mini-Game Balon & Meteor */
+        #arcadeCanvas {
+            background: linear-gradient(180deg, #090d16 0%, #1e1b4b 60%, #1e3a8a 100%);
+            border-radius: 1rem;
+            box-shadow: inset 0 0 30px rgba(99, 102, 241, 0.25);
+            cursor: pointer;
+            touch-action: none;
+        }
+        /* Scrollbar halus untuk panel materi */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 sm:p-5 lg:p-6">
+
+    <!-- HEADER NAVIGASI & PANEL SKOR KELAS (Tanpa Tim Alpha/Beta) -->
+    <header class="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 backdrop-blur-md border border-slate-700/70 rounded-2xl px-4 py-3 shadow-xl">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-2xl shadow-lg">
+                🎈
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-wide bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                    MISI AGEN SPLDV
+                </h1>
+                <p class="text-xs text-slate-400 font-medium">Arcade & Radar Sistem Persamaan Linear Dua Variabel</p>
+            </div>
+        </div>
+
+        <!-- Papan Skor Kelas & Nyawa / Streak -->
+        <div id="scoreboardHeader" class="hidden flex items-center gap-3 sm:gap-5">
+            <!-- Skor Kelas -->
+            <div class="flex items-center gap-3 px-4 py-1.5 rounded-xl border-2 border-amber-400/70 bg-amber-950/40">
+                <span class="text-2xl">⭐</span>
+                <div>
+                    <div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">SKOR KELAS</div>
+                    <div id="classScoreDisplay" class="text-2xl sm:text-3xl font-game font-bold text-white leading-none">0</div>
+                </div>
+            </div>
+
+            <!-- Kombo / Streak -->
+            <div class="flex items-center gap-2.5 px-4 py-1.5 rounded-xl border-2 border-emerald-400/60 bg-emerald-950/40">
+                <span class="text-2xl">🔥</span>
+                <div>
+                    <div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">KOMBO</div>
+                    <div id="streakDisplay" class="text-xl sm:text-2xl font-game font-bold text-white leading-none">0x</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Kontrol Cepat (Materi, Suara, Menu) -->
+        <div class="flex items-center gap-2">
+            <button onclick="openMaterialModal()" class="btn-3d bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-2 rounded-xl text-sm flex items-center gap-1.5">
+                <span>📖</span> <span class="hidden sm:inline">Materi SPLDV</span>
+            </button>
+            <button id="soundToggleBtn" onclick="toggleSound()" class="btn-3d bg-slate-700 hover:bg-slate-600 text-white font-bold p-2.5 rounded-xl text-sm" title="Aktifkan/Matikan Suara">
+                🔊
+            </button>
+            <button onclick="returnToMenu()" id="homeBtn" class="hidden btn-3d bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl text-sm">
+                🏠 Menu
+            </button>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <main class="w-full max-w-7xl mx-auto my-auto py-4">
+
+        <!-- LAYAR 1: MENU UTAMA -->
+        <section id="menuScreen" class="flex flex-col items-center text-center space-y-6 py-4">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 text-sm font-semibold animate-float">
+                ✨ Edisi Layar Proyektor & TV Kelas Interaktif
+            </div>
+
+            <h2 class="text-4xl sm:text-6xl font-game font-extrabold text-white leading-tight max-w-4xl">
+                Pecahkan Sandi <span class="text-cyan-400">x</span> & <span class="text-rose-400">y</span>, Jadilah Agen Matematika Terbaik!
+            </h2>
+
+            <p class="text-slate-300 text-base sm:text-xl max-w-2xl">
+                Pilih mode permainan di bawah ini. Siswa dapat maju ke depan kelas atau berdiskusi dalam kelompok untuk menaklukkan tantangan Eliminasi, Substitusi, dan Grafik!
+            </p>
+
+            <!-- Pilihan Mode Permainan -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-5xl pt-2">
+                <!-- Mode 1: Radar Grafik -->
+                <div class="bg-slate-800/80 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-3xl p-6 flex flex-col justify-between text-left shadow-2xl transition-all hover:-translate-y-1">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-3xl mb-4">
+                            🚀
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">Metode Grafik</span>
+                        <h3 class="text-2xl font-game font-bold text-white mt-1">Tembak Titik Potong</h3>
+                        <p class="text-slate-300 text-sm mt-2 leading-relaxed">
+                            Amati perpotongan dua garis laser pada layar radar! Bidik dan luncurkan roket tepat ke koordinat <strong class="text-cyan-300">(x, y)</strong> untuk meledakkan target UFO!
+                        </p>
+                    </div>
+                    <button onclick="startGame('graph')" class="btn-3d mt-6 w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-game font-bold text-lg tracking-wide">
+                        MAIN RADAR GRAFIK ▶
+                    </button>
+                </div>
+
+                <!-- Mode 2: Pecah Balon Aljabar -->
+                <div class="bg-slate-800/80 border-2 border-purple-500/40 hover:border-purple-400 rounded-3xl p-6 flex flex-col justify-between text-left shadow-2xl transition-all hover:-translate-y-1">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-3xl mb-4">
+                            🎈
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Eliminasi & Substitusi</span>
+                        <h3 class="text-2xl font-game font-bold text-white mt-1">Pecah Balon Aljabar</h3>
+                        <p class="text-slate-300 text-sm mt-2 leading-relaxed">
+                            Balon-balon berisi jawaban melayang naik ke angkasa! Hitung cepat bersama teman sekelas, lalu tembak/pecahkan balon dengan jawaban SPLDV yang benar sebelum terbang tinggi!
+                        </p>
+                    </div>
+                    <button onclick="startGame('algebra')" class="btn-3d mt-6 w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-game font-bold text-lg tracking-wide">
+                        MAIN PECAH BALON ▶
+                    </button>
+                </div>
+
+                <!-- Mode 3: Tantangan Campuran -->
+                <div class="bg-slate-800/80 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 flex flex-col justify-between text-left shadow-2xl transition-all hover:-translate-y-1">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-3xl mb-4">
+                            🎯
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Misi Lengkap</span>
+                        <h3 class="text-2xl font-game font-bold text-white mt-1">Petualangan SPLDV</h3>
+                        <p class="text-slate-300 text-sm mt-2 leading-relaxed">
+                            Perpaduan seru antara tembak UFO di koordinat grafik dan pecah balon aljabar (bentuk umum, eliminasi, substitusi, dan soal cerita)!
+                        </p>
+                    </div>
+                    <button onclick="startGame('mixed')" class="btn-3d mt-6 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-game font-bold text-lg tracking-wide">
+                        MULAI PETUALANGAN ▶
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pengaturan Jumlah Ronde -->
+            <div class="flex flex-wrap items-center justify-center gap-4 bg-slate-900/70 border border-slate-700/80 px-6 py-3 rounded-2xl text-sm">
+                <span class="text-slate-300 font-semibold">Jumlah Level / Misi:</span>
+                <div class="flex gap-2" id="roundSelector">
+                    <button onclick="setTotalRounds(6)" data-rounds="6" class="round-opt px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold">6 Misi</button>
+                    <button onclick="setTotalRounds(10)" data-rounds="10" class="round-opt px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold">10 Misi</button>
+                    <button onclick="setTotalRounds(14)" data-rounds="14" class="round-opt px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold">14 Misi</button>
+                </div>
+                <span class="hidden sm:inline text-slate-600">|</span>
+                <button onclick="openMaterialModal()" class="text-cyan-400 hover:text-cyan-300 underline font-semibold">
+                    Lihat Ringkasan Materi Sebelum Mulai →
+                </button>
+            </div>
+        </section>
+
+        <!-- LAYAR 2: ARENA PERMAINAN -->
+        <section id="gameScreen" class="hidden space-y-4">
+            <!-- Bar Status Misi -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-800/90 border border-slate-700 rounded-2xl px-5 py-3">
+                <div class="flex items-center gap-3">
+                    <span id="questionCounter" class="px-3.5 py-1 rounded-xl bg-indigo-600 text-white font-game font-bold text-base">
+                        Misi 1 / 6
+                    </span>
+                    <span id="missionBadge" class="px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs sm:text-sm font-bold">
+                        Metode Grafik
+                    </span>
+                </div>
+
+                <!-- Instruksi Singkat Layar Proyektor -->
+                <div id="arcadeStatusBanner" class="px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 font-bold text-xs sm:text-sm flex items-center gap-2">
+                    <span>🎮</span>
+                    <span id="arcadeInstructionText">Klik balon jawaban yang melayang atau titik potong pada radar!</span>
+                </div>
+
+                <!-- Tombol Kecepatan Balon (Khusus mode balon agar guru bisa atur cepat/lambat di kelas) -->
+                <button id="speedToggleBtn" onclick="toggleBalloonSpeed()" class="hidden text-xs sm:text-sm bg-slate-700 hover:bg-slate-600 text-amber-300 px-3 py-1.5 rounded-xl font-bold transition">
+                    🐢 Kecepatan: Santai
+                </button>
+            </div>
+
+            <!-- Grid Arena Utama: Kiri (Soal & Persamaan), Kanan (Arena Game Interaktif) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                
+                <!-- KOLOM KIRI: Kartu Sistem Persamaan & Petunjuk -->
+                <div class="lg:col-span-5 bg-slate-900/90 border-2 border-slate-700/80 rounded-3xl p-6 flex flex-col justify-between shadow-2xl">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-widest text-indigo-400">DATA SANDI SPLDV</span>
+                            <button onclick="toggleHint()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-lg font-bold transition">
+                                💡 Bantuan Langkah
+                            </button>
+                        </div>
+
+                        <!-- Kotak Dua Persamaan Linear -->
+                        <div class="bg-slate-950 border-2 border-indigo-500/50 rounded-2xl p-5 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-indigo-600/30 text-indigo-200 text-[11px] font-bold px-3 py-1 rounded-bl-xl">
+                                SPLDV
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <!-- Kurung kurawal besar khas SPLDV -->
+                                <div class="text-6xl sm:text-7xl font-light text-indigo-400 select-none">{</div>
+                                <div class="space-y-2 font-game text-2xl sm:text-3xl tracking-wide">
+                                    <div id="eq1Display" class="text-cyan-300 font-bold">2x + y = 7</div>
+                                    <div id="eq2Display" class="text-rose-300 font-bold">x + y = 5</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instruksi Pertanyaan -->
+                        <div class="bg-slate-800/70 rounded-2xl p-4 border border-slate-700">
+                            <p id="questionPrompt" class="text-base sm:text-lg text-white font-semibold leading-relaxed">
+                                Tentukan titik potong (x, y) dari kedua garis persamaan di atas pada radar koordinat!
+                            </p>
+                        </div>
+
+                        <!-- Kotak Petunjuk (Tersembunyi sampai tombol Bantuan diklik) -->
+                        <div id="hintBox" class="hidden bg-amber-950/60 border border-amber-500/50 rounded-2xl p-4 text-amber-100 text-sm space-y-1">
+                            <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                                <span>💡 Petunjuk Agen:</span>
+                            </div>
+                            <p id="hintText" class="leading-relaxed">Gunakan metode eliminasi dengan mengurangkan persamaan (1) dan (2).</p>
+                        </div>
+                    </div>
+
+                    <!-- Kotak Feedback Jawaban (Benar / Salah + Pembahasan Singkat) -->
+                    <div id="feedbackPanel" class="hidden mt-5 rounded-2xl p-4 border-2 transition-all">
+                        <div class="flex items-start gap-3">
+                            <div id="feedbackIcon" class="text-3xl">🎉</div>
+                            <div class="flex-1">
+                                <h4 id="feedbackTitle" class="font-game font-bold text-lg text-white">Tepat Sekali!</h4>
+                                <p id="feedbackExplanation" class="text-sm text-slate-200 mt-1 leading-relaxed"></p>
+                            </div>
+                        </div>
+                        <button id="nextQuestionBtn" onclick="nextQuestion()" class="btn-3d mt-4 w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold text-base">
+                            LANJUT MISI BERIKUTNYA ➔
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KOLOM KANAN: Area Interaktif (Canvas Grafik atau Mini-Game Balon Terbang) -->
+                <div class="lg:col-span-7 bg-slate-900/90 border-2 border-slate-700/80 rounded-3xl p-4 sm:p-5 flex flex-col justify-center items-center shadow-2xl relative overflow-hidden">
+                    
+                    <!-- TAMPILAN A: RADAR GRAFIK KARTESIUS + EFEK LEDAKAN UFO -->
+                    <div id="graphInteractionArea" class="w-full flex flex-col items-center space-y-2.5">
+                        <div class="w-full flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm px-1">
+                            <div class="flex items-center gap-4">
+                                <span class="flex items-center gap-1.5 text-cyan-300 font-bold">
+                                    <span class="w-4 h-1 bg-cyan-400 inline-block rounded"></span> Garis Persamaan 1
+                                </span>
+                                <span class="flex items-center gap-1.5 text-rose-300 font-bold">
+                                    <span class="w-4 h-1 bg-rose-400 inline-block rounded"></span> Garis Persamaan 2
+                                </span>
+                            </div>
+                            <div id="hoverCoordDisplay" class="px-3 py-1 rounded-lg bg-slate-800 text-amber-300 font-mono font-bold">
+                                Bidikan: (0, 0)
+                            </div>
+                        </div>
+
+                        <!-- Container Canvas Responsif -->
+                        <div class="w-full max-w-[500px] aspect-square relative">
+                            <canvas id="cartesianCanvas" class="w-full h-full border-2 border-slate-700"></canvas>
+                        </div>
+
+                        <p class="text-xs sm:text-sm text-slate-400 text-center">
+                            🚀 Arahkan bidikan & klik tepat pada titik perpotongan kedua garis untuk menembak target!
+                        </p>
+                    </div>
+
+                    <!-- TAMPILAN B: MINI-GAME PECAH BALON UDARA ALJABAR -->
+                    <div id="balloonInteractionArea" class="hidden w-full flex flex-col items-center space-y-2.5">
+                        <div class="w-full flex items-center justify-between text-xs sm:text-sm px-1">
+                            <span class="text-amber-300 font-bold flex items-center gap-1.5">
+                                🎈 Tembak Balon Jawaban yang Benar!
+                            </span>
+                            <span class="text-slate-400 text-xs">Balon akan terus berputar naik jika terlewat</span>
+                        </div>
+
+                        <!-- Canvas Balon Terbang -->
+                        <div class="w-full h-[420px] sm:h-[470px] relative">
+                            <canvas id="arcadeCanvas" class="w-full h-full border-2 border-indigo-500/40"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- LAYAR 3: HASIL AKHIR KELAS -->
+        <section id="resultScreen" class="hidden flex flex-col items-center text-center space-y-6 py-6">
+            <div class="text-6xl sm:text-7xl animate-bounce">🏆</div>
+            <h2 class="text-4xl sm:text-5xl font-game font-extrabold text-white">
+                MISI KELAS SELESAI!
+            </h2>
+            <p id="winnerAnnouncement" class="text-xl sm:text-2xl font-bold text-amber-300">
+                Luar Biasa! Seluruh Misi SPLDV Berhasil Ditaklukkan!
+            </p>
+
+            <!-- Kartu Skor Total Kelas -->
+            <div class="bg-slate-800/90 border-2 border-amber-400 rounded-3xl p-8 shadow-2xl w-full max-w-md">
+                <div class="text-sm font-bold text-amber-300 uppercase tracking-wider">TOTAL SKOR KELAS</div>
+                <div id="finalClassScore" class="text-6xl font-game font-extrabold text-white my-3">0</div>
+                <div id="finalRankBadge" class="inline-block px-4 py-1.5 rounded-full bg-indigo-600 text-white font-bold text-sm">
+                    Pangkat: Master Agen SPLDV
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 pt-4">
+                <button onclick="restartSameMode()" class="btn-3d px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-game font-bold text-lg">
+                    🔄 MAIN LAGI (SOAL BARU)
+                </button>
+                <button onclick="returnToMenu()" class="btn-3d px-8 py-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-game font-bold text-lg">
+                    🏠 KEMBALI KE MENU UTAMA
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER SINGKAT -->
+    <footer class="w-full max-w-7xl mx-auto text-center text-xs text-slate-500 pt-2">
+        Media Pembelajaran Interaktif Matematika • Sistem Persamaan Linear Dua Variabel (SPLDV)
+    </footer>
+
+    <!-- MODAL RINGKASAN MATERI AJAR SPLDV (Dapat dibuka kapan saja di kelas) -->
+    <div id="materialModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-indigo-500/60 rounded-3xl max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between px-6 py-4 bg-slate-800 border-b border-slate-700">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">📘</span>
+                    <h3 class="text-xl sm:text-2xl font-game font-bold text-white">Bahan Ajar: Sistem Persamaan Linear Dua Variabel</h3>
+                </div>
+                <button onclick="closeMaterialModal()" class="w-9 h-9 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white font-bold transition">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Isi Materi -->
+            <div class="p-6 overflow-y-auto space-y-6 text-slate-200">
+                <!-- 1. Pengertian -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5">
+                    <h4 class="text-lg font-game font-bold text-cyan-300 mb-2">1. Pengertian SPLDV</h4>
+                    <p class="leading-relaxed">
+                        <strong>Sistem Persamaan Linear Dua Variabel (SPLDV)</strong> adalah dua persamaan linear yang memiliki dua variabel, biasanya <span class="text-cyan-300 font-bold">x</span> dan <span class="text-rose-300 font-bold">y</span>, dan harus diselesaikan secara bersamaan.
+                    </p>
+                    <div class="mt-3 bg-slate-950/80 border border-indigo-500/30 rounded-xl p-3 font-mono text-sm sm:text-base text-amber-300">
+                        Contoh: &nbsp; 2x + y = 7 &nbsp; dan &nbsp; x + y = 5 &nbsp; → Penyelesaiannya: (2, 3)
+                    </div>
+                </div>
+
+                <!-- 2. Bentuk Umum -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5">
+                    <h4 class="text-lg font-game font-bold text-purple-300 mb-2">2. Bentuk Umum SPLDV</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                        <div class="bg-slate-950/80 border border-purple-500/30 rounded-xl p-4 font-game text-xl text-center">
+                            <div class="text-cyan-300">ax + by = c</div>
+                            <div class="text-rose-300 mt-1">dx + ey = f</div>
+                        </div>
+                        <ul class="space-y-1.5 text-sm">
+                            <li>🔹 <strong class="text-white">x dan y</strong> = Variabel (peubah yang dicari nilainya)</li>
+                            <li>🔹 <strong class="text-white">a, b, d, e</strong> = Koefisien (bilangan di depan variabel)</li>
+                            <li>🔹 <strong class="text-white">c dan f</strong> = Konstanta (bilangan tetap tanpa variabel)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 3. Metode Penyelesaian -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 space-y-3">
+                    <h4 class="text-lg font-game font-bold text-amber-300">3. Metode Penyelesaian SPLDV</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-700">
+                            <div class="font-bold text-emerald-400 mb-1">A. Metode Eliminasi</div>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                                Menghilangkan salah satu variabel (dengan menjumlahkan atau mengurangkan persamaan) untuk mendapatkan nilai variabel lainnya.
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-700">
+                            <div class="font-bold text-purple-400 mb-1">B. Metode Substitusi</div>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                                Mengganti salah satu variabel menggunakan bentuk persamaan lainnya untuk menemukan nilai variabel kedua.
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-700">
+                            <div class="font-bold text-cyan-400 mb-1">C. Metode Grafik</div>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                                Menggambar kedua persamaan pada bidang koordinat Kartesius. <strong>Titik perpotongan</strong> kedua garis adalah penyelesaiannya.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="px-6 py-4 bg-slate-800 border-t border-slate-700 flex justify-end">
+                <button onclick="closeMaterialModal()" class="btn-3d px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
+                    Siap Bermain! ✓
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIKA GAME & VISUALISASI INTERAKTIF -->
+    <script>
+        // ==========================================
+        // 1. STATUS GLOBAL & KONFIGURASI PERMAINAN
+        // ==========================================
+        const state = {
+            mode: 'graph',          // 'graph', 'algebra', atau 'mixed'
+            totalRounds: 6,         // Jumlah soal per sesi
+            currentRound: 0,        // Indeks soal berjalan (0-based)
+            score: 0,               // Skor kolektif kelas
+            streak: 0,              // Kombo jawaban benar beruntun
+            balloonSpeedMult: 1,    // 1 = Santai, 1.7 = Cepat
+            soundEnabled: true,
+            answeredCurrent: false, // Mencegah klik ganda setelah soal terjawab
+            questions: [],          // Daftar soal yang diacak
+            hoverCoord: { x: 0, y: 0 },
+            clickedCoord: null,     // Koordinat yang diklik siswa pada mode grafik
+            particles: [],          // Partikel ledakan konfeti & percikan laser
+            balloons: [],           // Objek balon terbang di mode aljabar
+            animFrameId: null       // ID loop animasi canvas
+        };
+
+        // ==========================================
+        // 2. SISTEM EFEK SUARA SINTETIS (TONE.JS)
+        // ==========================================
+        let synth = null;
+        function initAudio() {
+            if (!synth && typeof Tone !== 'undefined') {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -8;
+            }
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                initAudio();
+                if (!synth) return;
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === 'click') {
+                    synth.triggerAttackRelease("C5", "32n", now);
+                } else if (type === 'pop') {
+                    synth.triggerAttackRelease(["G5", "C6"], "32n", now);
+                } else if (type === 'correct') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "16n", now);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease(["G3", "F#3"], "8n", now);
+                } else if (type === 'win') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5", "B5", "C6"], "8n", now);
+                }
+            } catch (e) {
+                console.warn("Audio tidak tersedia:", e);
+            }
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            document.getElementById('soundToggleBtn').textContent = state.soundEnabled ? '🔊' : '🔇';
+        }
+
+        function toggleBalloonSpeed() {
+            playSound('click');
+            const btn = document.getElementById('speedToggleBtn');
+            if (state.balloonSpeedMult === 1) {
+                state.balloonSpeedMult = 1.65;
+                btn.textContent = '⚡ Kecepatan: Cepat';
+            } else {
+                state.balloonSpeedMult = 1;
+                btn.textContent = '🐢 Kecepatan: Santai';
+            }
+        }
+
+        // ==========================================
+        // 3. BANK SOAL SPLDV KREATIF & TERSTRUKTUR
+        // ==========================================
+        const GRAPH_PROBLEMS = [
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: '2x + y = 7',
+                eq2: 'x + y = 5',
+                line1: { m: -2, c: 7 },
+                line2: { m: -1, c: 5 },
+                solX: 2,
+                solY: 3,
+                prompt: 'Perhatikan kedua garis pada radar koordinat! Tembak tepat pada titik perpotongan (x, y) sebagai penyelesaian SPLDV.',
+                hint: 'Lihat tempat garis biru (2x + y = 7) dan garis merah (x + y = 5) saling bersilangan!',
+                explanation: 'Kedua garis berpotongan tepat di titik (2, 3). Cek: 2(2) + 3 = 7 dan 2 + 3 = 5. Benar!'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: 'x + y = 4',
+                eq2: 'x - y = 2',
+                line1: { m: -1, c: 4 },
+                line2: { m: 1, c: -2 },
+                solX: 3,
+                solY: 1,
+                prompt: 'Tembak titik perpotongan garis x + y = 4 dan x - y = 2 pada bidang Kartesius!',
+                hint: 'Cari koordinat di kuadran I (kanan atas) di mana jumlah x + y = 4 dan selisihnya 2.',
+                explanation: 'Titik potong berada di (3, 1). Karena 3 + 1 = 4 dan 3 - 1 = 2.'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: 'y = 2x + 1',
+                eq2: 'y = -x + 4',
+                line1: { m: 2, c: 1 },
+                line2: { m: -1, c: 4 },
+                solX: 1,
+                solY: 3,
+                prompt: 'Di manakah koordinat pertemuan antara garis y = 2x + 1 dan y = -x + 4?',
+                hint: 'Perhatikan nilai x = 1 pada sumbu mendatar, lalu naik ke atas sampai kedua garis bertemu.',
+                explanation: 'Saat x = 1, kedua persamaan menghasilkan y = 3. Jadi titik potongnya adalah (1, 3).'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: 'x - y = -1',
+                eq2: 'x + y = -3',
+                line1: { m: 1, c: 1 },
+                line2: { m: -1, c: -3 },
+                solX: -2,
+                solY: -1,
+                prompt: 'Target bersembunyi di kuadran III! Tembak titik potong garis x - y = -1 dan x + y = -3.',
+                hint: 'Lihat bagian kiri bawah bidang koordinat (nilai x negatif dan y negatif).',
+                explanation: 'Kedua garis berpotongan di (-2, -1). Cek: -2 - (-1) = -1 dan -2 + (-1) = -3.'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: '2x - y = 4',
+                eq2: 'x + y = 2',
+                line1: { m: 2, c: -4 },
+                line2: { m: -1, c: 2 },
+                solX: 2,
+                solY: 0,
+                prompt: 'Temukan titik perpotongan yang berada tepat di sumbu-X untuk sistem persamaan ini!',
+                hint: 'Karena berada di sumbu-X, maka nilai koordinat y adalah 0.',
+                explanation: 'Garis berpotongan di (2, 0). Cek: 2(2) - 0 = 4 dan 2 + 0 = 2.'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: 'x + 2y = 4',
+                eq2: 'x - y = -2',
+                line1: { m: -0.5, c: 2 },
+                line2: { m: 1, c: 2 },
+                solX: 0,
+                solY: 2,
+                prompt: 'Tembak titik perpotongan kedua persamaan yang berada tepat pada sumbu-Y!',
+                hint: 'Titik ini memiliki nilai absis x = 0.',
+                explanation: 'Kedua garis memotong sumbu-Y di titik yang sama, yaitu (0, 2).'
+            },
+            {
+                type: 'graph',
+                badge: 'Metode Grafik',
+                eq1: 'y = x - 3',
+                eq2: 'y = -2x + 3',
+                line1: { m: 1, c: -3 },
+                line2: { m: -2, c: 3 },
+                solX: 2,
+                solY: -1,
+                prompt: 'Arahkan radar ke titik potong y = x - 3 dan y = -2x + 3 di kuadran IV!',
+                hint: 'Lihat bagian kanan bawah koordinat (x positif, y negatif).',
+                explanation: 'Titik potongnya adalah (2, -1). Cek: 2 - 3 = -1 dan -2(2) + 3 = -1.'
+            }
+        ];
+
+        // Teks pada balon dibuat ringkas & jelas agar terbaca jelas saat melayang di TV proyektor
+        const ALGEBRA_PROBLEMS = [
+            {
+                type: 'algebra',
+                badge: 'Metode Eliminasi',
+                eq1: '3x + 2y = 12',
+                eq2: 'x + 2y = 8',
+                prompt: 'Untuk menghilangkan variabel y secara langsung, hasil pengurangan Persamaan (1) - (2) adalah...',
+                hint: 'Kurangkan 3x dengan x, dan 12 dengan 8 (karena 2y - 2y = 0).',
+                options: [
+                    '2x = 4',
+                    '4x = 20',
+                    '4x = 4',
+                    '2x = 20'
+                ],
+                correctIndex: 0,
+                explanation: 'Karena koefisien y sudah sama (+2y), dikurangkan: (3x - x) = 12 - 8 → 2x = 4 (x = 2).'
+            },
+            {
+                type: 'algebra',
+                badge: 'Metode Substitusi',
+                eq1: 'y = 2x + 1',
+                eq2: '3x + y = 11',
+                prompt: 'Jika y = 2x + 1 disubstitusikan ke 3x + y = 11, berapakah nilai x yang didapat?',
+                hint: 'Ganti y menjadi (2x + 1): 3x + 2x + 1 = 11 → 5x = 10.',
+                options: [
+                    'x = 2',
+                    'x = 3',
+                    'x = 5',
+                    'x = 1'
+                ],
+                correctIndex: 0,
+                explanation: '3x + (2x + 1) = 11 → 5x + 1 = 11 → 5x = 10 → x = 2.'
+            },
+            {
+                type: 'algebra',
+                badge: 'Bentuk Umum SPLDV',
+                eq1: '4x - 3y = 10',
+                eq2: '2x + 5y = 18',
+                prompt: 'Manakah pasangan KONSTANTA pada sistem persamaan di atas?',
+                hint: 'Konstanta adalah bilangan tetap yang berdiri sendiri tanpa huruf x atau y.',
+                options: [
+                    '10 dan 18',
+                    '4 dan 2',
+                    '-3 dan 5',
+                    'x dan y'
+                ],
+                correctIndex: 0,
+                explanation: 'Tepat! x dan y adalah variabel; 4, -3, 2, 5 adalah koefisien; dan 10, 18 adalah konstanta.'
+            },
+            {
+                type: 'algebra',
+                badge: 'Metode Eliminasi',
+                eq1: '2x + y = 9',
+                eq2: '3x - y = 11',
+                prompt: 'Pecahkan balon nilai x yang tepat dengan mengeliminasi variabel y!',
+                hint: 'Karena tanda y berlawanan (+y dan -y), jumlahkan kedua persamaan: 5x = 20.',
+                options: [
+                    'x = 4',
+                    'x = 2',
+                    'x = 5',
+                    'x = 3'
+                ],
+                correctIndex: 0,
+                explanation: 'Jumlahkan kedua persamaan: (2x + 3x) + (y - y) = 9 + 11 → 5x = 20 → x = 4.'
+            },
+            {
+                type: 'algebra',
+                badge: 'Metode Substitusi',
+                eq1: 'x = y + 3',
+                eq2: '2x + y = 12',
+                prompt: 'Pecahkan balon pasangan penyelesaian (x, y) yang tepat!',
+                hint: 'Ganti x menjadi (y + 3) → 2(y + 3) + y = 12 → 3y = 6 → y = 2.',
+                options: [
+                    '(5, 2)',
+                    '(2, 5)',
+                    '(4, 1)',
+                    '(6, 3)'
+                ],
+                correctIndex: 0,
+                explanation: '2(y + 3) + y = 12 → 3y + 6 = 12 → y = 2. Lalu x = 2 + 3 = 5. Jadi (5, 2).'
+            },
+            {
+                type: 'algebra',
+                badge: 'Aplikasi SPLDV',
+                eq1: '2b + p = 11.000',
+                eq2: 'b + p = 7.000',
+                prompt: 'Harga 2 buku & 1 pensil = Rp11.000. Harga 1 buku & 1 pensil = Rp7.000. Berapa harga 1 buku?',
+                hint: 'Kurangkan persamaan pertama dengan persamaan kedua untuk menghilangkan pensil (p).',
+                options: [
+                    'Rp4.000',
+                    'Rp3.000',
+                    'Rp5.000',
+                    'Rp3.500'
+                ],
+                correctIndex: 0,
+                explanation: '(2b + p) - (b + p) = 11.000 - 7.000 → b = 4.000. Jadi harga 1 buku adalah Rp4.000.'
+            },
+            {
+                type: 'algebra',
+                badge: 'Bentuk Umum SPLDV',
+                eq1: '5x + 2y = 16',
+                eq2: '3x - 4y = 2',
+                prompt: 'Berapakah KOEFISIEN dari variabel y pada persamaan kedua (3x - 4y = 2)?',
+                hint: 'Perhatikan bilangan beserta tandanya yang menempel tepat di depan huruf y pada baris kedua.',
+                options: [
+                    '-4',
+                    '4',
+                    '3',
+                    '2'
+                ],
+                correctIndex: 0,
+                explanation: 'Pada persamaan 3x - 4y = 2, angka di depan variabel y adalah -4.'
+            }
+        ];
+
+        // ==========================================
+        // 4. PENGATURAN MENU & NAVIGASI LAYAR
+        // ==========================================
+        function setTotalRounds(num) {
+            playSound('click');
+            state.totalRounds = num;
+            document.querySelectorAll('.round-opt').forEach(btn => {
+                if (parseInt(btn.dataset.rounds) === num) {
+                    btn.className = 'round-opt px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold';
+                } else {
+                    btn.className = 'round-opt px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold';
+                }
+            });
+        }
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function startGame(selectedMode) {
+            playSound('click');
+            state.mode = selectedMode;
+            state.currentRound = 0;
+            state.score = 0;
+            state.streak = 0;
+            state.answeredCurrent = false;
+
+            let pool = [];
+            if (selectedMode === 'graph') {
+                pool = shuffleArray(GRAPH_PROBLEMS);
+            } else if (selectedMode === 'algebra') {
+                pool = shuffleArray(ALGEBRA_PROBLEMS);
+            } else {
+                pool = shuffleArray([...GRAPH_PROBLEMS, ...ALGEBRA_PROBLEMS]);
+            }
+
+            state.questions = [];
+            while (state.questions.length < state.totalRounds) {
+                state.questions.push(...shuffleArray(pool));
+            }
+            state.questions = state.questions.slice(0, state.totalRounds);
+
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('scoreboardHeader').classList.remove('hidden');
+            document.getElementById('homeBtn').classList.remove('hidden');
+
+            updateScoreboardUI();
+            loadQuestion();
+        }
+
+        function restartSameMode() {
+            startGame(state.mode);
+        }
+
+        function returnToMenu() {
+            playSound('click');
+            stopArcadeLoop();
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('scoreboardHeader').classList.add('hidden');
+            document.getElementById('homeBtn').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        }
+
+        function openMaterialModal() {
+            playSound('click');
+            document.getElementById('materialModal').classList.remove('hidden');
+        }
+
+        function closeMaterialModal() {
+            playSound('click');
+            document.getElementById('materialModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // 5. PENGELOLAAN SKOR KELAS & KOMBO
+        // ==========================================
+        function updateScoreboardUI() {
+            document.getElementById('classScoreDisplay').textContent = state.score;
+            document.getElementById('streakDisplay').textContent = `${state.streak}x`;
+        }
+
+        function addClassPoints(basePoints) {
+            state.streak += 1;
+            const bonus = (state.streak > 1) ? (state.streak - 1) * 20 : 0;
+            const earned = basePoints + bonus;
+            state.score += earned;
+
+            const el = document.getElementById('classScoreDisplay');
+            el.classList.remove('animate-pop');
+            void el.offsetWidth;
+            el.classList.add('animate-pop');
+            updateScoreboardUI();
+            return earned;
+        }
+
+        // ==========================================
+        // 6. MEMUAT SOAL & RENDER INTERAKSI
+        // ==========================================
+        function loadQuestion() {
+            stopArcadeLoop();
+            const q = state.questions[state.currentRound];
+            state.answeredCurrent = false;
+            state.clickedCoord = null;
+            state.particles = [];
+
+            document.getElementById('questionCounter').textContent = `Misi ${state.currentRound + 1} / ${state.totalRounds}`;
+            document.getElementById('missionBadge').textContent = q.badge;
+            document.getElementById('eq1Display').textContent = q.eq1;
+            document.getElementById('eq2Display').textContent = q.eq2;
+            document.getElementById('questionPrompt').textContent = q.prompt;
+            document.getElementById('hintText').textContent = q.hint;
+
+            document.getElementById('hintBox').classList.add('hidden');
+            document.getElementById('feedbackPanel').classList.add('hidden');
+
+            const graphArea = document.getElementById('graphInteractionArea');
+            const balloonArea = document.getElementById('balloonInteractionArea');
+            const speedBtn = document.getElementById('speedToggleBtn');
+            const instrText = document.getElementById('arcadeInstructionText');
+
+            if (q.type === 'graph') {
+                graphArea.classList.remove('hidden');
+                balloonArea.classList.add('hidden');
+                speedBtn.classList.add('hidden');
+                instrText.textContent = 'Bidik & tembak titik perpotongan kedua garis pada radar!';
+                setTimeout(() => {
+                    resizeAndDrawCanvas();
+                }, 30);
+            } else {
+                graphArea.classList.add('hidden');
+                balloonArea.classList.remove('hidden');
+                speedBtn.classList.remove('hidden');
+                instrText.textContent = 'Klik/pecahkan balon dengan jawaban yang tepat sebelum melayang pergi!';
+                setTimeout(() => {
+                    initBalloonGame(q);
+                }, 30);
+            }
+        }
+
+        function toggleHint() {
+            playSound('click');
+            const box = document.getElementById('hintBox');
+            box.classList.toggle('hidden');
+        }
+
+        function showFeedback(isCorrect, explanationText) {
+            const panel = document.getElementById('feedbackPanel');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const exp = document.getElementById('feedbackExplanation');
+            const nextBtn = document.getElementById('nextQuestionBtn');
+
+            panel.classList.remove('hidden');
+            exp.textContent = explanationText;
+
+            if (isCorrect) {
+                playSound('correct');
+                const earned = addClassPoints(100);
+                panel.className = 'mt-5 rounded-2xl p-4 border-2 border-emerald-400 bg-emerald-950/70 transition-all';
+                icon.textContent = '🎉';
+                title.textContent = `Tepat Sekali! (+${earned} Poin Kelas)`;
+                title.className = 'font-game font-bold text-lg text-emerald-300';
+            } else {
+                playSound('wrong');
+                state.streak = 0;
+                updateScoreboardUI();
+                panel.className = 'mt-5 rounded-2xl p-4 border-2 border-rose-400 bg-rose-950/70 transition-all';
+                icon.textContent = '💥';
+                title.textContent = 'Ups, Meleset! Mari Lihat Pembahasannya:';
+                title.className = 'font-game font-bold text-lg text-rose-300';
+            }
+
+            if (state.currentRound + 1 >= state.totalRounds) {
+                nextBtn.textContent = 'LIHAT SKOR AKHIR KELAS 🏆';
+            } else {
+                nextBtn.textContent = 'LANJUT MISI BERIKUTNYA ➔';
+            }
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            state.currentRound++;
+            if (state.currentRound >= state.totalRounds) {
+                showFinalResults();
+                return;
+            }
+            loadQuestion();
+        }
+
+        function showFinalResults() {
+            stopArcadeLoop();
+            playSound('win');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.remove('hidden');
+
+            document.getElementById('finalClassScore').textContent = state.score;
+            const badge = document.getElementById('finalRankBadge');
+            if (state.score >= state.totalRounds * 100) {
+                badge.textContent = '🌟 Pangkat: Legenda Matematika SPLDV!';
+            } else if (state.score >= state.totalRounds * 60) {
+                badge.textContent = '🚀 Pangkat: Agen Ahli SPLDV!';
+            } else {
+                badge.textContent = '🎯 Pangkat: Penjelajah Muda SPLDV!';
+            }
+        }
+
+        // ==========================================
+        // 7. MINI-GAME BALON TERBANG ALJABAR (CANVAS)
+        // ==========================================
+        const arcadeCanvas = document.getElementById('arcadeCanvas');
+        const actx = arcadeCanvas.getContext('2d');
+
+        const BALLOON_COLORS = [
+            { fill: '#06b6d4', stroke: '#a5f3fc', dark: '#0e7490' }, // Cyan
+            { fill: '#f43f5e', stroke: '#fecdd3', dark: '#be123c' }, // Rose
+            { fill: '#8b5cf6', stroke: '#ddd6fe', dark: '#5b21b6' }, // Violet
+            { fill: '#f59e0b', stroke: '#fde68a', dark: '#b45309' }  // Amber
+        ];
+
+        function stopArcadeLoop() {
+            if (state.animFrameId) {
+                cancelAnimationFrame(state.animFrameId);
+                state.animFrameId = null;
+            }
+        }
+
+        function initBalloonGame(q) {
+            const rect = arcadeCanvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            arcadeCanvas.width = rect.width * dpr;
+            arcadeCanvas.height = rect.height * dpr;
+            actx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            const w = rect.width;
+            const h = rect.height;
+
+            // Buat 4 balon dengan posisi horizontal merata & ketinggian awal bertingkat
+            const count = q.options.length;
+            const spacing = w / (count + 1);
+
+            state.balloons = q.options.map((optText, idx) => {
+                const baseX = spacing * (idx + 1);
+                return {
+                    index: idx,
+                    text: optText,
+                    isCorrect: idx === q.correctIndex,
+                    x: baseX,
+                    baseX: baseX,
+                    y: h + 60 + idx * 75, // Muncul bertahap dari bawah layar
+                    radius: Math.min(54, Math.max(40, w / 10)),
+                    speed: (0.75 + Math.random() * 0.35),
+                    wobbleOffset: Math.random() * Math.PI * 2,
+                    color: BALLOON_COLORS[idx % BALLOON_COLORS.length],
+                    popped: false
+                };
+            });
+
+            function loop() {
+                drawArcadeScene(w, h);
+                state.animFrameId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function spawnExplosion(x, y, color, count = 24) {
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+                const speed = 2 + Math.random() * 5.5;
+                state.particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 3 + Math.random() * 4.5,
+                    color: i % 2 === 0 ? color : '#fde047',
+                    alpha: 1
+                });
+            }
+        }
+
+        function drawArcadeScene(w, h) {
+            actx.clearRect(0, 0, w, h);
+
+            // Gambar bintang latar lembut agar terasa seperti langit angkasa
+            actx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+            for (let s = 0; s < 18; s++) {
+                const sx = ((s * 97) % w);
+                const sy = ((s * 53) % (h - 40)) + 15;
+                actx.beginPath();
+                actx.arc(sx, sy, (s % 2) + 1, 0, Math.PI * 2);
+                actx.fill();
+            }
+
+            const time = Date.now() * 0.0025;
+
+            // Update & gambar setiap balon
+            state.balloons.forEach(b => {
+                if (b.popped) return;
+
+                // Gerakkan balon melayang naik dan bergoyang lembut ke kiri-kanan
+                if (!state.answeredCurrent) {
+                    b.y -= b.speed * state.balloonSpeedMult;
+                    b.x = b.baseX + Math.sin(time + b.wobbleOffset) * 18;
+
+                    // Jika balon melewati batas atas layar, munculkan kembali dari bawah
+                    if (b.y < -b.radius - 30) {
+                        b.y = h + b.radius + 30;
+                    }
+                }
+
+                // Tali balon bergelombang
+                actx.beginPath();
+                actx.moveTo(b.x, b.y + b.radius * 1.12);
+                actx.quadraticCurveTo(
+                    b.x + Math.sin(time * 2 + b.wobbleOffset) * 12,
+                    b.y + b.radius * 1.5,
+                    b.x,
+                    b.y + b.radius * 1.95
+                );
+                actx.strokeStyle = 'rgba(226, 232, 240, 0.6)';
+                actx.lineWidth = 2;
+                actx.stroke();
+
+                // Simpul ikatan bawah balon
+                actx.beginPath();
+                actx.moveTo(b.x - 6, b.y + b.radius * 1.15);
+                actx.lineTo(b.x + 6, b.y + b.radius * 1.15);
+                actx.lineTo(b.x, b.y + b.radius * 1.02);
+                actx.closePath();
+                actx.fillStyle = b.color.dark;
+                actx.fill();
+
+                // Badan balon (oval vertikal)
+                actx.save();
+                actx.beginPath();
+                actx.ellipse(b.x, b.y, b.radius * 0.92, b.radius * 1.1, 0, 0, Math.PI * 2);
+                actx.fillStyle = b.color.fill;
+                actx.shadowColor = b.color.fill;
+                actx.shadowBlur = 14;
+                actx.fill();
+                actx.lineWidth = 3;
+                actx.strokeStyle = b.color.stroke;
+                actx.stroke();
+                actx.restore();
+
+                // Kilauan cahaya pada permukaan balon
+                actx.beginPath();
+                actx.ellipse(b.x - b.radius * 0.32, b.y - b.radius * 0.38, b.radius * 0.16, b.radius * 0.32, -0.4, 0, Math.PI * 2);
+                actx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                actx.fill();
+
+                // Teks jawaban di tengah balon
+                actx.fillStyle = '#ffffff';
+                actx.font = 'bold 17px Fredoka';
+                actx.textAlign = 'center';
+                actx.textBaseline = 'middle';
+                actx.fillText(b.text, b.x, b.y);
+            });
+
+            // Update & gambar partikel ledakan saat balon pecah
+            for (let i = state.particles.length - 1; i >= 0; i--) {
+                const p = state.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.12; // gravitasi ringan
+                p.alpha -= 0.025;
+                if (p.alpha <= 0) {
+                    state.particles.splice(i, 1);
+                    continue;
+                }
+                actx.save();
+                actx.globalAlpha = p.alpha;
+                actx.beginPath();
+                actx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                actx.fillStyle = p.color;
+                actx.fill();
+                actx.restore();
+            }
+        }
+
+        function handleArcadeClick(clientX, clientY) {
+            if (state.answeredCurrent) return;
+            const rect = arcadeCanvas.getBoundingClientRect();
+            const clickX = clientX - rect.left;
+            const clickY = clientY - rect.top;
+
+            // Cek apakah klik mengenai salah satu balon (dicek dari depan ke belakang)
+            for (let i = state.balloons.length - 1; i >= 0; i--) {
+                const b = state.balloons[i];
+                if (b.popped) continue;
+                const dx = clickX - b.x;
+                const dy = clickY - b.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist <= b.radius * 1.18) {
+                    b.popped = true;
+                    state.answeredCurrent = true;
+                    playSound('pop');
+                    spawnExplosion(b.x, b.y, b.color.fill, 32);
+
+                    // Pecahkan juga balon yang salah lainnya jika jawaban benar
+                    if (b.isCorrect) {
+                        state.balloons.forEach(other => {
+                            if (!other.popped) {
+                                other.popped = true;
+                                spawnExplosion(other.x, other.y, other.color.fill, 12);
+                            }
+                        });
+                    }
+
+                    const q = state.questions[state.currentRound];
+                    showFeedback(b.isCorrect, q.explanation);
+                    break;
+                }
+            }
+        }
+
+        arcadeCanvas.addEventListener('click', (e) => {
+            handleArcadeClick(e.clientX, e.clientY);
+        });
+
+        arcadeCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches && e.touches[0]) {
+                handleArcadeClick(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        // ==========================================
+        // 8. ENGINE BIDANG KOORDINAT KARTESIUS (CANVAS)
+        // ==========================================
+        const canvas = document.getElementById('cartesianCanvas');
+        const ctx = canvas.getContext('2d');
+        const GRID_MIN = -6;
+        const GRID_MAX = 6;
+        const GRID_RANGE = GRID_MAX - GRID_MIN; // 12 satuan
+
+        function resizeAndDrawCanvas() {
+            if (!canvas || document.getElementById('graphInteractionArea').classList.contains('hidden')) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawCartesianPlane(rect.width, rect.height);
+        }
+
+        function mathToCanvas(x, y, width, height) {
+            const pad = 32;
+            const plotW = width - pad * 2;
+            const plotH = height - pad * 2;
+            const cx = pad + ((x - GRID_MIN) / GRID_RANGE) * plotW;
+            const cy = pad + ((GRID_MAX - y) / GRID_RANGE) * plotH;
+            return { cx, cy };
+        }
+
+        function canvasToMath(cx, cy, width, height) {
+            const pad = 32;
+            const plotW = width - pad * 2;
+            const plotH = height - pad * 2;
+            const rawX = GRID_MIN + ((cx - pad) / plotW) * GRID_RANGE;
+            const rawY = GRID_MAX - ((cy - pad) / plotH) * GRID_RANGE;
+            return {
+                x: Math.max(GRID_MIN, Math.min(GRID_MAX, Math.round(rawX))),
+                y: Math.max(GRID_MIN, Math.min(GRID_MAX, Math.round(rawY)))
+            };
+        }
+
+        function drawCartesianPlane(width, height) {
+            ctx.clearRect(0, 0, width, height);
+            const q = state.questions[state.currentRound];
+            if (!q || q.type !== 'graph') return;
+
+            // 1. Gambar Garis Grid Halus
+            for (let i = GRID_MIN; i <= GRID_MAX; i++) {
+                const vertical = mathToCanvas(i, 0, width, height);
+                const horizontal = mathToCanvas(0, i, width, height);
+
+                ctx.beginPath();
+                ctx.moveTo(vertical.cx, 24);
+                ctx.lineTo(vertical.cx, height - 24);
+                ctx.strokeStyle = i === 0 ? '#94a3b8' : 'rgba(148, 163, 184, 0.16)';
+                ctx.lineWidth = i === 0 ? 2.5 : 1;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(24, horizontal.cy);
+                ctx.lineTo(width - 24, horizontal.cy);
+                ctx.strokeStyle = i === 0 ? '#94a3b8' : 'rgba(148, 163, 184, 0.16)';
+                ctx.lineWidth = i === 0 ? 2.5 : 1;
+                ctx.stroke();
+
+                if (i !== 0 && i % 1 === 0) {
+                    const origin = mathToCanvas(0, 0, width, height);
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.font = 'bold 11px Plus Jakarta Sans';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i, vertical.cx, origin.cy + 15);
+                    ctx.textAlign = 'right';
+                    ctx.fillText(i, origin.cx - 7, horizontal.cy + 4);
+                }
+            }
+
+            const origin = mathToCanvas(0, 0, width, height);
+            ctx.fillStyle = '#fde047';
+            ctx.font = 'bold 13px Fredoka';
+            ctx.fillText('X', width - 14, origin.cy - 8);
+            ctx.fillText('Y', origin.cx + 14, 18);
+
+            // 2. Gambar Dua Garis Persamaan Linear
+            drawLinearLine(q.line1.m, q.line1.c, '#22d3ee', width, height);
+            drawLinearLine(q.line2.m, q.line2.c, '#fb7185', width, height);
+
+            // 3. Gambar Titik Bantu Kecil
+            for (let gx = GRID_MIN; gx <= GRID_MAX; gx++) {
+                for (let gy = GRID_MIN; gy <= GRID_MAX; gy++) {
+                    const pt = mathToCanvas(gx, gy, width, height);
+                    ctx.beginPath();
+                    ctx.arc(pt.cx, pt.cy, 2.2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                    ctx.fill();
+                }
+            }
+
+            // 4. Sorot crosshair bidikan saat mengarah ke koordinat tertentu
+            if (!state.answeredCurrent && state.hoverCoord) {
+                const hp = mathToCanvas(state.hoverCoord.x, state.hoverCoord.y, width, height);
+                ctx.beginPath();
+                ctx.arc(hp.cx, hp.cy, 11, 0, Math.PI * 2);
+                ctx.strokeStyle = '#fde047';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Garis bidik crosshair kecil
+                ctx.beginPath();
+                ctx.moveTo(hp.cx - 16, hp.cy);
+                ctx.lineTo(hp.cx + 16, hp.cy);
+                ctx.moveTo(hp.cx, hp.cy - 16);
+                ctx.lineTo(hp.cx, hp.cy + 16);
+                ctx.strokeStyle = 'rgba(253, 224, 71, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // 5. Jika sudah dijawab, tampilkan efek tembakan target & solusi sebenarnya
+            if (state.answeredCurrent) {
+                const solPt = mathToCanvas(q.solX, q.solY, width, height);
+
+                // Pancaran ledakan radar di titik potong
+                ctx.beginPath();
+                ctx.arc(solPt.cx, solPt.cy, 20, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.28)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(solPt.cx, solPt.cy, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#10b981';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fde047';
+                ctx.font = 'bold 14px Fredoka';
+                ctx.textAlign = 'left';
+                ctx.fillText(`🎯 (${q.solX}, ${q.solY})`, solPt.cx + 14, solPt.cy - 8);
+
+                if (state.clickedCoord && (state.clickedCoord.x !== q.solX || state.clickedCoord.y !== q.solY)) {
+                    const wrongPt = mathToCanvas(state.clickedCoord.x, state.clickedCoord.y, width, height);
+                    ctx.beginPath();
+                    ctx.arc(wrongPt.cx, wrongPt.cy, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawLinearLine(m, c, color, width, height) {
+            const x1 = GRID_MIN;
+            const y1 = m * x1 + c;
+            const x2 = GRID_MAX;
+            const y2 = m * x2 + c;
+
+            const p1 = mathToCanvas(x1, y1, width, height);
+            const p2 = mathToCanvas(x2, y2, width, height);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(24, 24, width - 48, height - 48);
+            ctx.clip();
+
+            ctx.beginPath();
+            ctx.moveTo(p1.cx, p1.cy);
+            ctx.lineTo(p2.cx, p2.cy);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function getPointerCoord(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            return canvasToMath(x, y, rect.width, rect.height);
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (state.answeredCurrent) return;
+            const coord = getPointerCoord(e);
+            state.hoverCoord = coord;
+            document.getElementById('hoverCoordDisplay').textContent = `Bidikan: (${coord.x}, ${coord.y})`;
+            resizeAndDrawCanvas();
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (state.answeredCurrent) return;
+            const coord = getPointerCoord(e);
+            submitGraphAnswer(coord);
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (state.answeredCurrent) return;
+            e.preventDefault();
+            const coord = getPointerCoord(e);
+            state.hoverCoord = coord;
+            document.getElementById('hoverCoordDisplay').textContent = `Ditembak: (${coord.x}, ${coord.y})`;
+            submitGraphAnswer(coord);
+        }, { passive: false });
+
+        function submitGraphAnswer(coord) {
+            const q = state.questions[state.currentRound];
+            if (!q || q.type !== 'graph') return;
+
+            state.answeredCurrent = true;
+            state.clickedCoord = coord;
+            resizeAndDrawCanvas();
+
+            const isCorrect = (coord.x === q.solX && coord.y === q.solY);
+            showFeedback(isCorrect, q.explanation);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeAndDrawCanvas();
+            const q = state.questions[state.currentRound];
+            if (q && q.type !== 'graph' && !document.getElementById('balloonInteractionArea').classList.contains('hidden')) {
+                initBalloonGame(q);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
